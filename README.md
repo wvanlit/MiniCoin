@@ -1,1 +1,1 @@
-# mini-iota
+# Mini IOTA
