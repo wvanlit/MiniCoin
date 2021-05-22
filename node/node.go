@@ -1,7 +1,7 @@
 package node
 
 import (
-	"fmt"
+	log "github.com/sirupsen/logrus"
 	"github.com/wvanlit/mini-iota/connection"
 )
 
@@ -16,6 +16,6 @@ func New(hub *connection.Hub) *Node {
 }
 
 func (n Node) Start() {
-	fmt.Println("Starting Node")
+	log.Info("Starting Node")
 	n.hub.Run()
 }

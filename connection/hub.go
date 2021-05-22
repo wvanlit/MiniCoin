@@ -1,8 +1,11 @@
 package connection
 
 import (
+	"encoding/json"
 	"github.com/gorilla/websocket"
-	"log"
+	log "github.com/sirupsen/logrus"
+	"github.com/wvanlit/mini-iota/messages"
+	"net"
 	"net/http"
 	"time"
 )
@@ -38,6 +41,7 @@ func (h *Hub) Run() {
 		select {
 		case c := <-h.register:
 			log.Println("Registering Client", c)
+			h.clients[c] = *c
 		case <-h.shutdown:
 			log.Println("Shutting down")
 			isRunning = false
@@ -54,58 +58,117 @@ func (h *Hub) SetupListener() {
 }
 
 func (h *Hub) connect(w http.ResponseWriter, r *http.Request) {
-	c, err := h.upgrader.Upgrade(w, r, nil)
+	conn, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Print("upgrade:", err)
+		log.Errorf("Error on upgrading to websocket: %s", err)
 		return
 	}
-	defer c.Close()
+
+	log.Infof("Started connection with %s", conn.RemoteAddr())
 
 	// Authenticate
-	isAuthenticated := false
-	for !isAuthenticated {
-
-	}
+	auth := h.HandleAuthentication(conn)
 	// Create Client
+	if auth == nil {
+		log.Errorf("Closing connection with %s because of errors", conn.RemoteAddr())
+		conn.Close()
+		return
+	}
+	log.Infof("Authentication on id: %s by %s", auth.Id, conn.RemoteAddr())
 
-	h.handleMessages(c)
+	client := createClient(auth.Id, conn)
+	h.clients[&client] = client
+
+	msg := messages.CreateAuthenticationResultMessage(true, "")
+	msgJson, err := json.Marshal(msg) // err is unnecessary, as we created it using a pre-defined interface
+
+	err = conn.WriteMessage(websocket.TextMessage, msgJson)
+	if err != nil {
+		log.Warnf("Error on writing message to %s, err: %s", conn.RemoteAddr(), err)
+	}
+
+	client.handleMessages()
 }
 
-func (h *Hub) handleMessages(conn *websocket.Conn) {
-	outgoing := make(chan []byte, 8)
-	incoming := make(chan []byte, 8)
-	isActive := true
-
-	go func() {
-		for isActive {
-			mt, message, err := conn.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				break
-			}
-			if mt > 0 {
-				incoming <- message
+func (h *Hub) HandleAuthentication(c *websocket.Conn) *messages.AuthenticationRequest {
+	var auth *messages.AuthenticationRequest = nil
+	for auth == nil {
+		msg, err := ReceiveMessage(c)
+		if err != nil {
+			switch err.(type) {
+			case *net.OpError: // This prevents crashing upon unexpected close
+				return nil
+			default:
+				continue
 			}
 		}
-		log.Println("Shutting down Write")
-	}()
 
-	go func() {
-		for isActive {
-			message := <-outgoing
-			err := conn.WriteMessage(websocket.TextMessage, message)
-			if err != nil {
-				log.Println("write:", err)
+		if msg.MsgType != messages.AUTHENTICATION_REQUEST {
+			msg := messages.CreateErrorMessage(messages.NOT_AUTHENTICATED, "You are not authenticated yet")
+			MarshalAndSendMessage(msg, c)
+			continue
+		}
+
+		payload, err := messages.UnmarshalAuthenticationRequest(msg.Payload.(map[string]interface{}))
+		if err != nil {
+			log.Warnln("Cannot unmarshal message to Auth request:", msg.Payload)
+			continue
+		}
+
+		found := false
+		for client := range h.clients {
+			if client.id == auth.Id {
+				found = true
 				break
 			}
 		}
-		log.Println("Shutting down Read")
-	}()
 
-	for {
-		select {
-		case msg := <-incoming:
-			outgoing <- msg
+		if !found {
+			auth = payload
+		} else {
+			msg := messages.CreateAuthenticationResultMessage(false, "ID already in use")
+			MarshalAndSendMessage(msg, c)
 		}
 	}
+	return auth
+}
+
+func MarshalAndSendMessage(msg messages.Message, c *websocket.Conn) {
+	msgJson, _ := json.Marshal(msg) // err is unnecessary, as we created it using a pre-defined interface
+
+	err := c.WriteMessage(websocket.TextMessage, msgJson)
+	if err != nil {
+		log.Warnf("Error on writing message to %s, err: %s", c.RemoteAddr(), err)
+	}
+}
+
+func ReceiveMessage(c *websocket.Conn) (*messages.Message, error) {
+	mt, message, err := c.ReadMessage()
+
+	if err != nil || mt <= 0 {
+		log.Warnf("Error on read message from %s, err: %s", c.RemoteAddr(), err)
+
+		msg := messages.CreateErrorMessage(messages.INVALID_MESSAGE, "Could not read message")
+		msgJson, _ := json.Marshal(msg) // err is unnecessary, as we created it using a pre-defined interface
+
+		err2 := c.WriteMessage(websocket.TextMessage, msgJson)
+		if err2 != nil {
+			log.Errorf("Error on writing message to %s, err: %s", c.RemoteAddr(), err)
+			return nil, err2
+		}
+
+		return nil, err
+	}
+
+	msg, err := messages.UnmarshalMessageJSON(message)
+
+	if err != nil {
+		log.Warnf("Error on unmarshal message from %s, err: %s", c.RemoteAddr(), err)
+
+		msg := messages.CreateErrorMessage(messages.INVALID_FORMAT, "Could not parse message")
+		MarshalAndSendMessage(msg, c)
+
+		return nil, err
+	}
+	return msg, nil
 }

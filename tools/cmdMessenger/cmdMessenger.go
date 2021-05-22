@@ -2,15 +2,26 @@ package main
 
 import (
 	"bufio"
-	"fmt"
+	"encoding/json"
 	"github.com/gorilla/websocket"
-	"log"
+	"github.com/mattn/go-colorable"
+	log "github.com/sirupsen/logrus"
+	"github.com/wvanlit/mini-iota/messages"
 	"net/url"
 	"os"
 	"strings"
 )
 
 func main() {
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:     true,
+		DisableQuote:    false,
+		FullTimestamp:   true,
+		TimestampFormat: "15:04:05",
+	})
+	log.SetOutput(colorable.NewColorableStdout())
+	log.SetOutput(os.Stdout)
+
 	u := url.URL{Scheme: "ws", Host: "localhost:8080", Path: "/ws"}
 	log.Printf("connecting to %s", u.String())
 
@@ -35,17 +46,47 @@ func main() {
 	}()
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("WebSocket Messenger")
-	fmt.Println("---------------------")
+	log.Println("WebSocket Messenger")
 	for {
 		text, _ := reader.ReadString('\n')
 		// convert CRLF to LF
 		text = strings.Replace(text, "\n", "", -1)
 
-		err := c.WriteMessage(websocket.TextMessage, []byte(text))
+		byteText := checkShorthands(text)
+		log.Infof("Sending:%s", string(byteText))
+		err := c.WriteMessage(websocket.TextMessage, byteText)
 		if err != nil {
 			log.Println("write:", err)
 			return
 		}
+	}
+}
+
+func checkShorthands(text string) []byte {
+	if !strings.HasPrefix(text, ":") {
+		return []byte(text)
+	}
+
+	fullCommand := text[1:]
+	commandParts := strings.Split(fullCommand, "|")
+	command := commandParts[0]
+
+	switch command {
+	case "auth":
+		msg := messages.CreateAuthenticationRequestMessage(commandParts[1])
+		bytesMsg, err := json.Marshal(msg)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return bytesMsg
+	case "data":
+		msg := messages.CreateDataMessage(commandParts[1])
+		bytesMsg, err := json.Marshal(msg)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return bytesMsg
+	default:
+		return []byte(text)
 	}
 }
