@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
-	"github.com/wvanlit/mini-iota/messages"
+	"github.com/wvanlit/mini-btc/messages"
 	"net"
 	"net/http"
 	"time"

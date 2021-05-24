@@ -1,33 +1,24 @@
-# Mini IOTA
-A simple implementation of the underlying principles of the IOTA Distributed Ledger.
+# Mini Blockchain
+A simple implementation of the underlying principles of blockchain based cryptocurrencies
 ## Goals
 
-- [ ] Basic Nodes
-    - [ ] Light Nodes
-    - [ ] Full Nodes
-    - [ ] Coordinator Nodes
-
-- [ ] Connections between Nodes over Websockets
-
-- [ ] Messages
-    - [ ] Zero-value Transactions
-    - [ ] Value Transactions
-
-- [ ] Tangle ([explanation](https://legacy.docs.iota.org/docs/getting-started/1.1/the-tangle/overview))
-    - [ ] Directed Acyclic Graph (DAG) datastructure for storing transactions
-    - [ ] Direct & Indirect References
-    - [ ] Tip Selection ([explanation](https://legacy.docs.iota.org/docs/getting-started/1.1/the-tangle/tip-selection))
-    - [ ] Milestones
-
-- [ ] Transaction Validation
-    - [ ] Proof of Work
-    - [ ] Signatures
-
-- [ ] Value
-    - [ ] Tokens
-    - [ ] Wallets
-
-- [ ] Network Simulator
-    - [ ] Nodes running in containers
-    - [ ] Quick setup of multiple nodes on one host
-    - [ ] Generate Tangle
+- [X] 0.0.1 Basic Nodes
+  - [X] Communicate over WebSockets
+  - [X] Receive and Send Messages
+- [ ] 0.0.2 Blockchain
+  - [X] Blocks
+  - [X] Transactions
+  - [ ] Ledger
+  - [ ] Milestone Blocks
+  - [ ] Proof of Work
+  - [ ] State of the World
+  - [ ] Integration into Node
+  - [ ] Tests
+- [ ] 0.0.3 Communication between Nodes
+  - [ ] Share Transactions
+  - [ ] Share new Blocks
+  - [ ] Share Blockchain History
+- [ ] 0.0.4 All nodes are separate programs, which can run over the network
+- [ ] 0.0.4 Automated Network Setup
+- [ ] 0.0.5 Fraud Detection
+- [ ] 0.1 Basic Blockchain Network

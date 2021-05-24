@@ -2,7 +2,7 @@ package node
 
 import (
 	log "github.com/sirupsen/logrus"
-	"github.com/wvanlit/mini-iota/connection"
+	"github.com/wvanlit/mini-btc/connection"
 )
 
 type Node struct {

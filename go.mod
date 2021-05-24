@@ -1,4 +1,4 @@
-module github.com/wvanlit/mini-iota
+module github.com/wvanlit/mini-btc
 
 go 1.16
 
