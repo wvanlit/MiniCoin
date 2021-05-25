@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/mattn/go-colorable"
 	log "github.com/sirupsen/logrus"
-	"github.com/wvanlit/mini-btc/connection"
-	"github.com/wvanlit/mini-btc/node"
+	"github.com/wvanlit/minicoin/connection"
+	"github.com/wvanlit/minicoin/node"
 	"os"
 )
 

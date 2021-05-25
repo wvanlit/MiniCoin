@@ -1,7 +1,7 @@
 package blockchain
 
 import (
-	"github.com/wvanlit/mini-btc/blockchain"
+	"github.com/wvanlit/minicoin/blockchain"
 	"testing"
 	"time"
 )

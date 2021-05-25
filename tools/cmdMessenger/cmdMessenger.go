@@ -6,7 +6,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/mattn/go-colorable"
 	log "github.com/sirupsen/logrus"
-	"github.com/wvanlit/mini-btc/messages"
+	"github.com/wvanlit/minicoin/messages"
 	"net/url"
 	"os"
 	"strings"

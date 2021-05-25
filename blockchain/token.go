@@ -1,14 +1,11 @@
 package blockchain
 
-// TODO Token still not named
-type Token int
-
 const (
-	One             = 1
-	Ten             = 10
-	Hundred         = 100
-	Thousand        = 1_000
-	TenThousand     = 10_000
-	HundredThousand = 100_000
-	Million         = 1_000_000
+	MiniCoin  = 1
+	DecaCoin  = 1_0
+	HectoCoin = 1_00
+	KiloCoin  = 1_000
+	MegaCoin  = 1_000_000
+	GigaCoin  = 1_000_000_000
+	TeraCoin  = 1_000_000_000_000
 )

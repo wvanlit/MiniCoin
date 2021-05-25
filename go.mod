@@ -1,4 +1,4 @@
-module github.com/wvanlit/mini-btc
+module github.com/wvanlit/minicoin
 
 go 1.16
 
