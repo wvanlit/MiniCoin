@@ -10,7 +10,7 @@ A simple implementation of the underlying principles of blockchain based cryptoc
   - [X] Transactions
   - [ ] Ledger
   - [ ] Milestone Blocks
-  - [ ] Proof of Work
+  - [X] Proof of Work
   - [ ] State of the World
   - [ ] Integration into Node
   - [ ] Tests
