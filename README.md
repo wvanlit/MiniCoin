@@ -1,4 +1,4 @@
-# Mini Blockchain
+# Mini Coin
 A simple implementation of the underlying principles of blockchain based cryptocurrencies
 ## Goals
 
