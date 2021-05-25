@@ -1,13 +1,21 @@
+/**
+ * @Author: Wessel van Lit
+ * @Project: minicoin
+ * @Date: 25-May-2021
+ */
+
 package connection
 
 import (
 	"encoding/json"
-	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
-	"github.com/wvanlit/minicoin/messages"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/wvanlit/minicoin/minicoin/messages"
 )
 
 type Hub struct {

@@ -1,3 +1,9 @@
+/**
+ * @Author: Wessel van Lit
+ * @Project: minicoin
+ * @Date: 25-May-2021
+ */
+
 package blockchain
 
 import (
@@ -8,7 +14,7 @@ import (
 type Transaction struct {
 	From      string
 	To        string
-	Amount    int
+	Amount    uint
 	Timestamp time.Time
 }
 
@@ -16,7 +22,7 @@ func (t Transaction) String() string {
 	return fmt.Sprintf("from %s to %s amount %d at %s", t.From, t.To, t.Amount, t.Timestamp.String())
 }
 
-func CreateTransaction(from string, to string, amount int, timestamp time.Time) Transaction {
+func CreateTransaction(from string, to string, amount uint, timestamp time.Time) Transaction {
 	return Transaction{
 		From:      from,
 		To:        to,

@@ -1,3 +1,9 @@
+/**
+ * @Author: Wessel van Lit
+ * @Project: minicoin
+ * @Date: 25-May-2021
+ */
+
 package blockchain
 
 const (

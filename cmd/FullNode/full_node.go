@@ -1,11 +1,19 @@
+/**
+ * @Author: Wessel van Lit
+ * @Project: minicoin
+ * @Date: 25-May-2021
+ */
+
 package main
 
 import (
+	"os"
+
 	"github.com/mattn/go-colorable"
 	log "github.com/sirupsen/logrus"
-	"github.com/wvanlit/minicoin/connection"
-	"github.com/wvanlit/minicoin/node"
-	"os"
+
+	"github.com/wvanlit/minicoin/minicoin/connection"
+	"github.com/wvanlit/minicoin/minicoin/node"
 )
 
 func main() {

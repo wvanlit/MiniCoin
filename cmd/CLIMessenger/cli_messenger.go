@@ -3,13 +3,15 @@ package main
 import (
 	"bufio"
 	"encoding/json"
-	"github.com/gorilla/websocket"
-	"github.com/mattn/go-colorable"
-	log "github.com/sirupsen/logrus"
-	"github.com/wvanlit/minicoin/messages"
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/gorilla/websocket"
+	"github.com/mattn/go-colorable"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/wvanlit/minicoin/minicoin/messages"
 )
 
 func main() {
