@@ -19,5 +19,6 @@ A simple implementation of the underlying principles of blockchain based cryptoc
   - [ ] Share Blockchain
 - [ ] 0.0.4 All nodes are separate programs, which can run over the network
 - [ ] 0.0.5 Automated Network Setup
+- [ ] 0.0.6 Fraud Detection
 - [ ] 0.1 Basic Blockchain Network
 - [ ] 0.1.1 Fraud Detection
