@@ -25,7 +25,7 @@ func main() {
 	})
 	log.SetOutput(colorable.NewColorableStdout())
 	log.SetOutput(os.Stdout)
-	log.Info("Started Mini-IOTA")
+	log.Info("Started MiniCoin")
 
 	hub := connection.NewConnectionHub(":8080")
 

@@ -6,45 +6,62 @@
 
 package blockchain
 
-import (
-	"fmt"
-	"time"
-)
+import "fmt"
 
-type Blockchain struct {
+const MINING_REWARD = HectoCoin
+
+type BlockChain struct {
 	blocks []Block
+	ledger *Ledger
 }
 
-type Block struct {
-	// These should not be hashed
-	Prev  *Block
-	Next  *Block
-	Index uint
-	Hash  string
-
-	// These should be included in the hash
-	Transactions        []Transaction
-	HashOfPreviousBlock string
-	Timestamp           time.Time
-	Nonce               uint
-}
-
-type MilestoneBlock struct {
-	Ledger map[string]int
-	Block
-}
-
-func (b Block) GetHashableString(nonce uint) string {
-	str := ""
-	str += "=== Transactions ===\n"
-	str += fmt.Sprintf("%d\n", nonce)
-	str += "=== Transactions ===\n"
-	for _, transaction := range b.Transactions {
-		str += transaction.String() + "\n"
+func CreateNewBlockChain(user *Wallet) (BlockChain, error) {
+	ledger := CreateNewLedger()
+	blockChain := BlockChain{
+		blocks: make([]Block, 0),
+		ledger: &ledger,
 	}
-	str += "=== Previous Hash ===\n"
-	str += b.HashOfPreviousBlock + "\n"
-	str += "=== Timestamp ===\n"
-	str += b.Timestamp.String()
-	return str
+	err := blockChain.AppendBlockAfterPoW(CreateGenesisBlock(), user)
+	return blockChain, err
+}
+
+func (b *BlockChain) AppendBlockAfterPoW(block Block, miner *Wallet) error {
+	block.Transactions = append(block.Transactions, CreateMiningReward(miner))
+
+	err := block.ComputeBlock()
+	if err != nil {
+		return err
+	}
+
+	err = b.UpdateLedgerWithBlock(&block)
+	if err != nil {
+		return err
+	}
+
+	b.blocks = append(b.blocks, block)
+
+	return b.ValidateChain()
+}
+
+func (b BlockChain) ValidateChain() error {
+	for i, block := range b.blocks {
+		if !block.IsValid() {
+			return fmt.Errorf("block at index %d is not valid", i)
+		}
+	}
+	return nil
+}
+
+func (b *BlockChain) UpdateLedgerWithBlock(block *Block) error {
+	ledgerCopy := *b.ledger
+
+	for _, transaction := range block.Transactions {
+		err := b.ledger.ProcessTransaction(transaction)
+		if err != nil {
+			// Revert to old ledger state
+			b.ledger = &ledgerCopy
+			return err
+		}
+	}
+	return nil
 }

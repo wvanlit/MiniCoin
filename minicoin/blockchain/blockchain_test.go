@@ -1,103 +1,186 @@
 /**
  * @Author: Wessel van Lit
  * @Project: minicoin
- * @Date: 25-May-2021
+ * @Date: 04-Jun-2021
  */
 
 package blockchain
 
 import (
+	"reflect"
 	"testing"
 	"time"
 )
 
-func TestMain(m *testing.M) {
-	// Make the PoW easier
-	oldHashStart := HashStart
-	HashStart = "c001"
-	defer func() {
-		HashStart = oldHashStart
-	}()
-
-	m.Run()
-}
-
-func createBlock() Block {
-	// This is necessary to have consistent hashes on different testing runs
-	blocktime := time.Date(2000, 1, 1, 0, 0, 0, 0, time.Local)
-
-	return Block{
-		Transactions: []Transaction{
-			CreateTransaction("A", "B", MiniCoin, blocktime),
-			CreateTransaction("A", "C", DecaCoin*2, blocktime),
-			CreateTransaction("C", "B", HectoCoin, blocktime),
-		},
-		HashOfPreviousBlock: "ABCDEFG",
-		Timestamp:           blocktime,
-	}
-}
-
-func TestBlock_HashString(t *testing.T) {
-	block := createBlock()
-	hashString := block.GetHashableString(1)
-
-	if hashString == "" || len(hashString) < 10 {
-		t.Fail()
-	}
-}
-
-func TestBlock_HashStringConsitency(t *testing.T) {
-	block := createBlock()
-	prev := block.GetHashableString(1)
-	for i := 0; i < 10; i++ {
-		curr := block.GetHashableString(1)
-
-		if curr != prev {
-			t.Fatalf("Hashing Function is not consistent:\ncurrent:'%s'\nprev'%s'", curr, prev)
-		}
-	}
-}
-
-func TestBlock_ComputeBlock(t *testing.T) {
-	block := createBlock()
-	err := block.ComputeBlock()
-
+func TestCreateNewBlockChain(t *testing.T) {
+	usr, err := GenerateWallet()
 	if err != nil {
-		t.Fatalf("Error on compute block: %s", err)
+		t.Fatalf("Error on generating wallet: %s", err)
 	}
 
-	if !IsValidHash(&block, block.Nonce) {
-		t.Fatalf("Hash is not valid on nonce: %d", block.Nonce)
+	blockChain, err := CreateNewBlockChain(usr)
+	if err != nil {
+		t.Fatalf("Error on creating blockchain: %s", err)
+	}
+
+	if blockChain.ValidateChain() != nil {
+		t.Fatalf("Blockchain is not actually valid")
+	}
+
+	amount, err := blockChain.ledger.GetTokenTotalFrom(usr.GetPublicAddress())
+	if err != nil || amount != HectoCoin {
+		t.Fatalf("User did not get Mining Reward")
 	}
 }
 
-func TestBlock_ComputeBlockVerification(t *testing.T) {
-	outputs := make([]string, 5)
-	block := createBlock()
-	for index := 0; index < 5; index++ {
-		err := block.ComputeBlock()
-		if err != nil {
-			t.Fatalf("Error on compute block: %s", err)
-		}
-		if !IsValidHash(&block, block.Nonce) {
-			t.Fatalf("Hash is not valid on nonce: %d", block.Nonce)
-		}
-		outputs[index] = block.Hash
-		t.Logf("Got hash '%s' on nonce '%d'", block.Hash, block.Nonce)
+func TestBlockChain_AppendBlockAfterPoW(t *testing.T) {
+	usr, err := GenerateWallet()
+	wA, wB, wC, err := CreateThreeWallets()
+	if err != nil {
+		t.Fatalf("Error on generating wallet: %s", err)
+	}
+	blockChain, err := CreateNewBlockChain(usr)
+	if err != nil {
+		t.Fatalf("Error on creating blockchain: %s", err)
 	}
 
-	for _, output := range outputs {
-		for _, output2 := range outputs {
-			if output != output2 {
-				t.Fatalf("'%s' and '%s' aren't equal", output, output2)
-			}
-		}
+	blockChain.ledger.AddTokensTo(wA.GetPublicAddress(), MiniCoin)
+	blockChain.ledger.AddTokensTo(wB.GetPublicAddress(), MiniCoin)
+	blockChain.ledger.AddTokensTo(wC.GetPublicAddress(), MiniCoin)
+
+	transactions := []SignedTransaction{
+		CreateTransaction(wA, wB.GetPublicAddress(), MiniCoin, time.Now()),
+		CreateTransaction(wB, wC.GetPublicAddress(), MiniCoin, time.Now()),
+		CreateTransaction(wC, wA.GetPublicAddress(), MiniCoin, time.Now()),
+	}
+
+	block := CreateNewBlock(&blockChain, transactions)
+
+	err = blockChain.AppendBlockAfterPoW(block, usr)
+	if err != nil {
+		t.Fatalf("Error on appending block to blockchain: %s", err)
+	}
+
+	if blockChain.blocks[1].Transactions[0].String() != block.Transactions[0].String() {
+		t.Fatalf("Block not added to blockchain correctly!\n%v", blockChain.blocks)
+	}
+
+	if blockChain.ValidateChain() != nil {
+		t.Fatalf("Chain is no longer valid")
+	}
+
+	amount, err := blockChain.ledger.GetTokenTotalFrom(usr.GetPublicAddress())
+	if err != nil || amount != 2*MINING_REWARD {
+		t.Fatalf("Miner did not get reward")
 	}
 }
 
-func BenchmarkBlock_ComputeBlock(b *testing.B) {
-	block := createBlock()
-	for i := 0; i < b.N; i++ {
-		block.ComputeBlock()
+func TestBlockChain_UpdateLedgerWithValidBlock(t *testing.T) {
+	usr, err := GenerateWallet()
+	wA, wB, wC, err := CreateThreeWallets()
+	if err != nil {
+		t.Fatalf("Error on generating wallet: %s", err)
 	}
+
+	blockChain, err := CreateNewBlockChain(usr)
+	if err != nil {
+		t.Fatalf("Error on creating blockchain: %s", err)
+	}
+
+	var startingAmount uint = DecaCoin
+
+	blockChain.ledger.AddTokensTo(wA.GetPublicAddress(), startingAmount)
+	blockChain.ledger.AddTokensTo(wB.GetPublicAddress(), startingAmount)
+	blockChain.ledger.AddTokensTo(wC.GetPublicAddress(), startingAmount)
+
+	var aSendsToB uint = MiniCoin
+	var bSendsToC uint = MiniCoin * 2
+	var cSendsToA uint = MiniCoin * 3
+
+	transactions := []SignedTransaction{
+		CreateTransaction(wA, wB.GetPublicAddress(), aSendsToB, time.Now()),
+		CreateTransaction(wB, wC.GetPublicAddress(), bSendsToC, time.Now()),
+		CreateTransaction(wC, wA.GetPublicAddress(), cSendsToA, time.Now()),
+	}
+
+	block := CreateNewBlock(&blockChain, transactions)
+	oldLedger := copyLedger(blockChain.ledger.tokenLedger)
+
+	err = blockChain.AppendBlockAfterPoW(block, usr)
+	if err != nil {
+		t.Fatalf("Error on appending block to blockchain: %s", err)
+	}
+
+	if reflect.DeepEqual(oldLedger, blockChain.ledger.tokenLedger) {
+		t.Fatalf("Old Ledger and New Ledger should be different")
+	}
+
+	aTotal, errA := blockChain.ledger.GetTokenTotalFrom(wA.GetPublicAddress())
+	bTotal, errB := blockChain.ledger.GetTokenTotalFrom(wB.GetPublicAddress())
+	cTotal, errC := blockChain.ledger.GetTokenTotalFrom(wC.GetPublicAddress())
+
+	if errA != nil || errB != nil || errC != nil {
+		t.Fatalf("Could not get token total from existing users")
+	}
+
+	if aTotal != startingAmount-aSendsToB+cSendsToA {
+		t.Fatalf("A does not have the correct amount")
+	}
+
+	if bTotal != startingAmount-bSendsToC+aSendsToB {
+		t.Fatalf("B does not have the correct amount")
+	}
+
+	if cTotal != startingAmount-cSendsToA+bSendsToC {
+		t.Fatalf("C does not have the correct amount")
+	}
+}
+
+func TestBlockChain_UpdateLedgerWithInvalidBlock(t *testing.T) {
+	usr, err := GenerateWallet()
+	wA, wB, wC, err := CreateThreeWallets()
+	if err != nil {
+		t.Fatalf("Error on generating wallet: %s", err)
+	}
+
+	blockChain, err := CreateNewBlockChain(usr)
+	if err != nil {
+		t.Fatalf("Error on creating blockchain: %s", err)
+	}
+
+	var startingAmount uint = MiniCoin
+
+	blockChain.ledger.AddTokensTo(wA.GetPublicAddress(), startingAmount)
+	blockChain.ledger.AddTokensTo(wB.GetPublicAddress(), startingAmount)
+	blockChain.ledger.AddTokensTo(wC.GetPublicAddress(), startingAmount)
+
+	var aSendsToB uint = MiniCoin * 5
+	var bSendsToC uint = MiniCoin * 2
+	var cSendsToA uint = MiniCoin * 3
+
+	transactions := []SignedTransaction{
+		CreateTransaction(wA, wB.GetPublicAddress(), aSendsToB, time.Now()),
+		CreateTransaction(wB, wC.GetPublicAddress(), bSendsToC, time.Now()),
+		CreateTransaction(wC, wA.GetPublicAddress(), cSendsToA, time.Now()),
+	}
+
+	block := CreateNewBlock(&blockChain, transactions)
+	oldLedger := copyLedger(blockChain.ledger.tokenLedger)
+
+	err = blockChain.AppendBlockAfterPoW(block, usr)
+	if err == nil {
+		t.Fatalf("Should have error on appending an invalid block")
+	}
+
+	if !reflect.DeepEqual(oldLedger, blockChain.ledger.tokenLedger) {
+		t.Fatalf("Old Ledger and New Ledger should be the same, since the transaction is not valid")
+	}
+}
+
+func copyLedger(ledger map[string]uint) map[string]uint {
+	ledgerCopy := make(map[string]uint)
+	for s, u := range ledger {
+		ledgerCopy[s] = u
+	}
+	return ledgerCopy
 }

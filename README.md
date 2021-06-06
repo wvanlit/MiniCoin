@@ -8,17 +8,16 @@ A simple implementation of the underlying principles of blockchain based cryptoc
 - [ ] 0.0.2 Blockchain
   - [X] Blocks
   - [X] Transactions
-  - [ ] Ledger
-  - [ ] Milestone Blocks
-  - [ ] Proof of Work
-  - [ ] State of the World
+  - [X] Ledger
+  - [X] Proof of Work
+  - [X] Wallets / Addresses
+  - [X] Tests
   - [ ] Integration into Node
-  - [ ] Tests
 - [ ] 0.0.3 Communication between Nodes
   - [ ] Share Transactions
   - [ ] Share new Blocks
-  - [ ] Share Blockchain History
+  - [ ] Share Blockchain
 - [ ] 0.0.4 All nodes are separate programs, which can run over the network
-- [ ] 0.0.4 Automated Network Setup
-- [ ] 0.0.5 Fraud Detection
+- [ ] 0.0.5 Automated Network Setup
 - [ ] 0.1 Basic Blockchain Network
+- [ ] 0.1.1 Fraud Detection
